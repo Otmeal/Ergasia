@@ -1,0 +1,15 @@
+{
+  "name": "time-tracker",
+  "private": true,
+  "scripts": {
+    "dev:web": "pnpm --filter web dev",
+    "dev:api": "pnpm --filter api start:dev",
+    "dev:desktop": "pnpm --filter web tauri:dev",
+    "build:web": "pnpm --filter web build",
+    "build:api": "pnpm --filter api build",
+    "dev": "concurrently \"pnpm dev:api\" \"pnpm dev:desktop\""
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.3"
+  }
+}
