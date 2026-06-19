@@ -7,6 +7,9 @@
     "dev:desktop": "pnpm --filter web tauri:dev",
     "build:web": "pnpm --filter web build",
     "build:api": "pnpm --filter api build",
+    "db:migrate": "pnpm --filter api exec prisma migrate dev",
+    "db:generate": "pnpm --filter api exec prisma generate",
+    "db:studio": "pnpm --filter api exec prisma studio",
     "dev": "concurrently \"pnpm dev:api\" \"pnpm dev:desktop\""
   },
   "devDependencies": {
