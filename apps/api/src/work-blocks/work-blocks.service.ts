@@ -49,6 +49,7 @@ export class WorkBlocksService {
 
     return this.prisma.workBlock.create({
       data: {
+        ...(dto.id ? { id: dto.id } : {}),
         title: this.normalizeRequiredText(dto.title, 'title'),
         notes: this.normalizeOptionalText(dto.notes),
         startedAt,

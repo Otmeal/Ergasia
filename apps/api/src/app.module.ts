@@ -3,11 +3,12 @@ import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
+import { SyncModule } from './sync/sync.module';
 import { TagsModule } from './tags/tags.module';
 import { WorkBlocksModule } from './work-blocks/work-blocks.module';
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), PrismaModule, WorkBlocksModule, TagsModule],
+  imports: [ConfigModule.forRoot({ isGlobal: true }), PrismaModule, WorkBlocksModule, TagsModule, SyncModule],
   controllers: [AppController],
   providers: [AppService],
 })

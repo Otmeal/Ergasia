@@ -7,5 +7,6 @@ import { WorkBlocksService } from './work-blocks.service';
   imports: [PrismaModule],
   controllers: [WorkBlocksController],
   providers: [WorkBlocksService],
+  exports: [WorkBlocksService],
 })
 export class WorkBlocksModule {}

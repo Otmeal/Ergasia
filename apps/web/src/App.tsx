@@ -12,15 +12,20 @@ import type {
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import {
-  createTag,
-  createWorkBlock,
-  deleteTag,
-  deleteWorkBlock,
-  getTags,
-  getWorkBlocks,
-  updateTag,
-  updateWorkBlock,
-} from './api'
+  createLocalTag,
+  createLocalWorkBlock,
+  deleteLocalTag,
+  deleteLocalWorkBlock,
+  getMetadata,
+  loadLocalData,
+  removeMetadata,
+  setMetadata,
+  syncLocalData,
+  updateLocalTag,
+  updateLocalWorkBlock,
+  type LocalDataSnapshot,
+  type SyncOutcome,
+} from './localData'
 import { MarkdownPreview } from './markdown'
 import type { Tag, WorkBlock, WorkBlockPayload } from './types'
 import './App.css'
@@ -63,13 +68,13 @@ function App() {
   const [contextMenu, setContextMenu] = useState<{ blockId: string; x: number; y: number } | null>(
     null,
   )
-  const [trackingStartedAt, setTrackingStartedAt] = useState<Date | null>(() =>
-    readTrackingStart(),
-  )
+  const [trackingStartedAt, setTrackingStartedAt] = useState<Date | null>(null)
   const [nowTick, setNowTick] = useState(() => Date.now())
   const [elapsedEditing, setElapsedEditing] = useState(false)
   const [elapsedDraft, setElapsedDraft] = useState('')
-  const [trackingDraft, setTrackingDraft] = useState<TrackingDraft>(() => readTrackingDraft())
+  const [trackingDraft, setTrackingDraft] = useState<TrackingDraft>(() => ({
+    ...defaultTrackingDraft,
+  }))
   const [isTrackingEdit, setIsTrackingEdit] = useState(false)
   const [trackingTagPickerOpen, setTrackingTagPickerOpen] = useState(false)
 
@@ -117,18 +122,68 @@ function App() {
     return events
   }, [workBlocks, trackingStartedAt, nowTick, trackingDraft, tags])
 
-  const refreshData = useCallback(async () => {
-    const [nextBlocks, nextTags] = await Promise.all([getWorkBlocks(), getTags()])
-    setWorkBlocks(nextBlocks)
-    setTags(nextTags)
-    return { nextBlocks, nextTags }
+  const applySnapshot = useCallback((snapshot: LocalDataSnapshot) => {
+    setWorkBlocks(snapshot.workBlocks)
+    setTags(snapshot.tags)
   }, [])
 
+  const refreshData = useCallback(async () => {
+    const snapshot = await loadLocalData()
+    applySnapshot(snapshot)
+    return snapshot
+  }, [applySnapshot])
+
+  const runSync = useCallback(async () => {
+    setStatus('同步中。')
+
+    try {
+      const outcome = await syncLocalData()
+      applySnapshot(outcome.snapshot)
+      setStatus(formatSyncOutcome(outcome))
+      return outcome
+    } catch (error: unknown) {
+      setStatus(getErrorMessage(error))
+      throw error
+    }
+  }, [applySnapshot])
+
   useEffect(() => {
-    void refreshData()
-      .then(() => setStatus('已同步。'))
-      .catch((error: unknown) => setStatus(getErrorMessage(error)))
-  }, [refreshData])
+    let cancelled = false
+
+    void Promise.all([loadLocalData(), readTrackingState()])
+      .then(([snapshot, tracking]) => {
+        if (cancelled) {
+          return
+        }
+
+        applySnapshot(snapshot)
+        setTrackingStartedAt(tracking.startedAt)
+        setTrackingDraft(tracking.draft)
+        setStatus(formatPendingStatus(snapshot.pendingCount))
+        void runSync()
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setStatus(getErrorMessage(error))
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [applySnapshot, runSync])
+
+  useEffect(() => {
+    const sync = () => void runSync()
+    const intervalId = window.setInterval(sync, 30_000)
+
+    window.addEventListener('online', sync)
+
+    return () => {
+      window.clearInterval(intervalId)
+      window.removeEventListener('online', sync)
+    }
+  }, [runSync])
 
   useEffect(() => {
     if (!trackingStartedAt) {
@@ -237,14 +292,16 @@ function App() {
 
     try {
       const payload = formToPayload(blockForm)
+      const wasEditing = Boolean(selectedBlockId)
       const saved = selectedBlockId
-        ? await updateWorkBlock(selectedBlockId, payload)
-        : await createWorkBlock(payload)
+        ? await updateLocalWorkBlock(selectedBlockId, payload)
+        : await createLocalWorkBlock(payload)
 
       await refreshData()
       selectBlock(saved)
       setIsEditorOpen(false)
-      setStatus(selectedBlockId ? '時間區塊已更新。' : '時間區塊已建立。')
+      setStatus(wasEditing ? '時間區塊已更新。' : '時間區塊已建立。')
+      void runSync()
     } catch (error: unknown) {
       setStatus(getErrorMessage(error))
     } finally {
@@ -256,7 +313,7 @@ function App() {
     setIsSaving(true)
 
     try {
-      await deleteWorkBlock(blockId)
+      await deleteLocalWorkBlock(blockId)
       await refreshData()
 
       if (selectedBlockId === blockId) {
@@ -266,6 +323,7 @@ function App() {
       }
 
       setStatus('時間區塊已刪除。')
+      void runSync()
     } catch (error: unknown) {
       setStatus(getErrorMessage(error))
     } finally {
@@ -282,8 +340,8 @@ function App() {
   }
 
   function persistTrackingDraft(draft: TrackingDraft) {
-    localStorage.setItem(trackingDraftKey, JSON.stringify(draft))
     setTrackingDraft(draft)
+    void setMetadata(trackingDraftKey, draft)
   }
 
   function updateTrackingTitle(title: string) {
@@ -302,8 +360,8 @@ function App() {
   async function toggleTimeTrack() {
     if (!trackingStartedAt) {
       const start = new Date()
-      localStorage.setItem(trackingStorageKey, start.toISOString())
-      localStorage.setItem(trackingDraftKey, JSON.stringify(trackingDraft))
+      await setMetadata(trackingStorageKey, start.toISOString())
+      await setMetadata(trackingDraftKey, trackingDraft)
       setTrackingStartedAt(start)
       setStatus('已開始追蹤時間。')
       return
@@ -314,7 +372,7 @@ function App() {
     try {
       const endedAt = new Date()
       const safeEnd = endedAt > trackingStartedAt ? endedAt : addMinutes(trackingStartedAt, 1)
-      const created = await createWorkBlock({
+      const created = await createLocalWorkBlock({
         title: trackingDraft.title.trim() || '未命名時間區塊',
         notes: trackingDraft.notes,
         startedAt: trackingStartedAt.toISOString(),
@@ -322,13 +380,14 @@ function App() {
         tagIds: trackingDraft.tagIds,
       })
 
-      localStorage.removeItem(trackingStorageKey)
-      localStorage.removeItem(trackingDraftKey)
+      await removeMetadata(trackingStorageKey)
+      await removeMetadata(trackingDraftKey)
       setTrackingStartedAt(null)
       setTrackingDraft({ ...defaultTrackingDraft })
       await refreshData()
       openEditor(created)
       setStatus('已停止追蹤，時間區塊已建立。')
+      void runSync()
     } catch (error: unknown) {
       setStatus(getErrorMessage(error))
     } finally {
@@ -356,8 +415,8 @@ function App() {
       tagIds: blockForm.tagIds,
     }
 
-    localStorage.setItem(trackingStorageKey, start.toISOString())
-    localStorage.setItem(trackingDraftKey, JSON.stringify(draft))
+    void setMetadata(trackingStorageKey, start.toISOString())
+    void setMetadata(trackingDraftKey, draft)
     setTrackingStartedAt(start)
     setTrackingDraft(draft)
     setNowTick(Date.now())
@@ -385,7 +444,7 @@ function App() {
     }
 
     const start = new Date(Date.now() - ms)
-    localStorage.setItem(trackingStorageKey, start.toISOString())
+    void setMetadata(trackingStorageKey, start.toISOString())
     setTrackingStartedAt(start)
     setNowTick(Date.now())
   }
@@ -398,11 +457,12 @@ function App() {
         ...createEmptyBlockForm(selection.start, selection.end),
         title: '未命名時間區塊',
       })
-      const created = await createWorkBlock(payload)
+      const created = await createLocalWorkBlock(payload)
 
       await refreshData()
       openEditor(created)
       setStatus('時間區塊已建立。')
+      void runSync()
     } catch (error: unknown) {
       setStatus(getErrorMessage(error))
     }
@@ -453,7 +513,7 @@ function App() {
     const endedAt = end ?? addMinutes(start, 30)
 
     try {
-      const updated = await updateWorkBlock(id, {
+      const updated = await updateLocalWorkBlock(id, {
         startedAt: start.toISOString(),
         endedAt: endedAt.toISOString(),
       })
@@ -464,6 +524,7 @@ function App() {
       }
 
       setStatus('時間區塊時間已更新。')
+      void runSync()
     } catch (error: unknown) {
       revert()
       setStatus(getErrorMessage(error))
@@ -502,12 +563,12 @@ function App() {
 
     try {
       if (editingTagId) {
-        await updateTag(editingTagId, {
+        await updateLocalTag(editingTagId, {
           name: tagForm.name.trim(),
           color: tagForm.color,
         })
       } else {
-        await createTag({
+        await createLocalTag({
           name: tagForm.name.trim(),
           color: tagForm.color,
         })
@@ -516,6 +577,7 @@ function App() {
       await refreshData()
       resetTagForm()
       setStatus(editingTagId ? '標籤已更新。' : '標籤已建立。')
+      void runSync()
     } catch (error: unknown) {
       setStatus(getErrorMessage(error))
     } finally {
@@ -527,7 +589,7 @@ function App() {
     setIsSaving(true)
 
     try {
-      await deleteTag(id)
+      await deleteLocalTag(id)
       await refreshData()
 
       if (editingTagId === id) {
@@ -539,6 +601,7 @@ function App() {
         tagIds: current.tagIds.filter((tagId) => tagId !== id),
       }))
       setStatus('標籤已刪除。')
+      void runSync()
     } catch (error: unknown) {
       setStatus(getErrorMessage(error))
     } finally {
@@ -1232,37 +1295,75 @@ const trackingDraftKey = 'ergasia.tracking.draft'
 const trackingEventId = '__tracking__'
 const defaultTrackingDraft: TrackingDraft = { title: '', notes: '', tagIds: [] }
 
-function readTrackingDraft(): TrackingDraft {
-  const stored = localStorage.getItem(trackingDraftKey)
+async function readTrackingState(): Promise<{ draft: TrackingDraft; startedAt: Date | null }> {
+  const [storedDraft, storedStartedAt] = await Promise.all([
+    getMetadata<Partial<TrackingDraft>>(trackingDraftKey),
+    getMetadata<string>(trackingStorageKey),
+  ])
+  let draft = normalizeTrackingDraft(storedDraft)
+  let startedAt = parseTrackingStart(storedStartedAt)
 
-  if (!stored) {
-    return { ...defaultTrackingDraft }
+  if (!storedDraft) {
+    const legacyDraft = readLegacyJson(trackingDraftKey)
+
+    if (legacyDraft) {
+      draft = normalizeTrackingDraft(legacyDraft)
+      await setMetadata(trackingDraftKey, draft)
+      localStorage.removeItem(trackingDraftKey)
+    }
   }
 
-  try {
-    const parsed = JSON.parse(stored) as Partial<TrackingDraft>
+  if (!storedStartedAt) {
+    const legacyStartedAt = localStorage.getItem(trackingStorageKey)
 
-    return {
-      title: typeof parsed.title === 'string' ? parsed.title : defaultTrackingDraft.title,
-      notes: typeof parsed.notes === 'string' ? parsed.notes : '',
-      tagIds: Array.isArray(parsed.tagIds)
-        ? parsed.tagIds.filter((id): id is string => typeof id === 'string')
-        : [],
+    if (legacyStartedAt) {
+      const parsedStartedAt = parseTrackingStart(legacyStartedAt)
+
+      if (parsedStartedAt) {
+        startedAt = parsedStartedAt
+        await setMetadata(trackingStorageKey, legacyStartedAt)
+      }
+
+      localStorage.removeItem(trackingStorageKey)
     }
-  } catch {
-    return { ...defaultTrackingDraft }
+  }
+
+  return { draft, startedAt }
+}
+
+function normalizeTrackingDraft(value: unknown): TrackingDraft {
+  const parsed = typeof value === 'object' && value ? (value as Partial<TrackingDraft>) : {}
+
+  return {
+    title: typeof parsed.title === 'string' ? parsed.title : defaultTrackingDraft.title,
+    notes: typeof parsed.notes === 'string' ? parsed.notes : '',
+    tagIds: Array.isArray(parsed.tagIds)
+      ? parsed.tagIds.filter((id): id is string => typeof id === 'string')
+      : [],
   }
 }
 
-function readTrackingStart(): Date | null {
-  const stored = localStorage.getItem(trackingStorageKey)
+function parseTrackingStart(value: unknown): Date | null {
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
+function readLegacyJson(key: string): unknown {
+  const stored = localStorage.getItem(key)
 
   if (!stored) {
     return null
   }
 
-  const date = new Date(stored)
-  return Number.isNaN(date.getTime()) ? null : date
+  try {
+    return JSON.parse(stored) as unknown
+  } catch {
+    return null
+  }
 }
 
 function formatElapsed(ms: number): string {
@@ -1361,6 +1462,22 @@ function getReadableTextColor(color: string): string {
   const luminance = (0.299 * red + 0.587 * green + 0.114 * blue) / 255
 
   return luminance > 0.66 ? '#1d2528' : '#ffffff'
+}
+
+function formatPendingStatus(pendingCount: number): string {
+  return pendingCount > 0 ? `離線：${pendingCount} 筆待同步。` : '已同步。'
+}
+
+function formatSyncOutcome(outcome: SyncOutcome): string {
+  if (outcome.status === 'offline') {
+    return `離線：${outcome.pendingCount} 筆待同步。`
+  }
+
+  if (outcome.status === 'failed') {
+    return `同步失敗：${outcome.failedCount} 筆失敗，${outcome.pendingCount} 筆待同步。`
+  }
+
+  return formatPendingStatus(outcome.pendingCount)
 }
 
 function getErrorMessage(error: unknown): string {

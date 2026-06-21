@@ -27,6 +27,7 @@ export class TagsService {
     try {
       return await this.prisma.tag.create({
         data: {
+          ...(dto.id ? { id: dto.id } : {}),
           name: this.normalizeName(dto.name),
           color: dto.color,
         },

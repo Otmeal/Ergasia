@@ -1,5 +1,31 @@
 # React + TypeScript + Vite
 
+## Production desktop build
+
+The desktop app is built with Tauri. The backend API is not bundled into the
+executable; deploy `apps/api` separately and point the app at that remote URL.
+
+```bash
+pnpm install
+pnpm --filter api test
+pnpm --filter web build
+VITE_API_URL=https://your-production-api.example.com pnpm --filter web tauri:build:windows
+```
+
+Windows NSIS artifacts are emitted under `apps/web/src-tauri/target/release/bundle/nsis/`.
+
+On Linux/WSL, build the Linux packages with:
+
+```bash
+VITE_API_URL=https://your-production-api.example.com pnpm --filter web tauri:build:linux
+```
+
+Release artifacts are emitted under:
+
+```text
+apps/web/src-tauri/target/release/bundle/
+```
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:

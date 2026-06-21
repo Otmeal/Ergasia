@@ -9,7 +9,10 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "tauri": "tauri",
-    "tauri:dev": "tauri dev"
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build",
+    "tauri:build:linux": "tauri build --bundles deb,rpm",
+    "tauri:build:windows": "tauri build --bundles nsis"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.20",

@@ -1,9 +1,13 @@
-import type { Tag, TagPayload, WorkBlock, WorkBlockPayload } from './types'
+import type { SyncOperation, SyncResponse, Tag, TagPayload, WorkBlock, WorkBlockPayload } from './types'
 
 const apiBase = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
 
 export function getWorkBlocks() {
   return request<WorkBlock[]>('/work-blocks')
+}
+
+export function checkHealth() {
+  return request<{ status: string; timestamp: string }>('/health', {}, 2_500)
 }
 
 export function createWorkBlock(payload: WorkBlockPayload) {
@@ -50,23 +54,37 @@ export function deleteTag(id: string) {
   })
 }
 
-async function request<ResponseBody>(path: string, init: RequestInit = {}) {
+export function syncOperations(operations: SyncOperation[]) {
+  return request<SyncResponse>('/sync', {
+    method: 'POST',
+    body: JSON.stringify({ operations }),
+  })
+}
+
+async function request<ResponseBody>(path: string, init: RequestInit = {}, timeoutMs = 8_000) {
   const headers = new Headers(init.headers)
+  const controller = new AbortController()
+  const timeout = window.setTimeout(() => controller.abort(), timeoutMs)
 
   if (init.body && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json')
   }
 
-  const response = await fetch(`${apiBase}${path}`, {
-    ...init,
-    headers,
-  })
+  try {
+    const response = await fetch(`${apiBase}${path}`, {
+      ...init,
+      headers,
+      signal: controller.signal,
+    })
 
-  if (!response.ok) {
-    throw new Error(await readError(response))
+    if (!response.ok) {
+      throw new Error(await readError(response))
+    }
+
+    return (await response.json()) as ResponseBody
+  } finally {
+    window.clearTimeout(timeout)
   }
-
-  return (await response.json()) as ResponseBody
 }
 
 async function readError(response: Response): Promise<string> {

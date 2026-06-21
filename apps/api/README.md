@@ -25,6 +25,13 @@
 
 [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
 
+## Local-first sync API
+
+- `GET /health` returns backend reachability status for the desktop app.
+- `POST /sync` accepts queued local operations and applies them in order.
+- The desktop app sends client-generated UUIDs so offline-created records keep the
+  same IDs after sync.
+
 ## Project setup
 
 ```bash

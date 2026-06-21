@@ -1,6 +1,10 @@
-import { IsArray, IsISO8601, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsArray, IsISO8601, IsOptional, IsString, IsUUID, MinLength } from 'class-validator';
 
 export class CreateWorkBlockDto {
+  @IsOptional()
+  @IsUUID()
+  id?: string;
+
   @IsString()
   @MinLength(1)
   title!: string;
