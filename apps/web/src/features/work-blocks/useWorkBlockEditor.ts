@@ -36,6 +36,10 @@ export type WorkBlockEditor = {
   handleEventDidMount: (info: EventMountArg) => void
   handleContextEdit: (blockId: string) => void
   handleContextDelete: (blockId: string) => void
+  handleContextStartTracking: (
+    blockId: string,
+    onStart: (title: string, tagIds: string[]) => void,
+  ) => void
 }
 
 export function useWorkBlockEditor(
@@ -299,6 +303,18 @@ export function useWorkBlockEditor(
     [deleteBlock],
   )
 
+  const handleContextStartTracking = useCallback(
+    (blockId: string, onStart: (title: string, tagIds: string[]) => void) => {
+      const block = workspace.workBlocks.find((item) => item.id === blockId)
+      setContextMenu(null)
+
+      if (block) {
+        onStart(block.title, block.tags.map((tag) => tag.id))
+      }
+    },
+    [workspace.workBlocks],
+  )
+
   return {
     selectedBlockId,
     selectedBlock,
@@ -323,5 +339,6 @@ export function useWorkBlockEditor(
     handleEventDidMount,
     handleContextEdit,
     handleContextDelete,
+    handleContextStartTracking,
   }
 }

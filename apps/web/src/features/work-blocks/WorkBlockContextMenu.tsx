@@ -4,12 +4,14 @@ type WorkBlockContextMenuProps = {
   contextMenu: Exclude<ContextMenuState, null>
   onEdit: (blockId: string) => void
   onDelete: (blockId: string) => void
+  onStartTracking: (blockId: string) => void
 }
 
 export function WorkBlockContextMenu({
   contextMenu,
   onEdit,
   onDelete,
+  onStartTracking,
 }: WorkBlockContextMenuProps) {
   return (
     <ul
@@ -17,6 +19,15 @@ export function WorkBlockContextMenu({
       role="menu"
       style={{ top: contextMenu.y, left: contextMenu.x }}
     >
+      <li>
+        <button
+          type="button"
+          role="menuitem"
+          onClick={() => onStartTracking(contextMenu.blockId)}
+        >
+          以此標題開始計時
+        </button>
+      </li>
       <li>
         <button type="button" role="menuitem" onClick={() => onEdit(contextMenu.blockId)}>
           編輯詳細資料

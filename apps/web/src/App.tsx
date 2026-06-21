@@ -149,6 +149,11 @@ function App() {
           contextMenu={workBlockEditor.contextMenu}
           onEdit={workBlockEditor.handleContextEdit}
           onDelete={workBlockEditor.handleContextDelete}
+          onStartTracking={(blockId) =>
+            workBlockEditor.handleContextStartTracking(blockId, (title, tagIds) => {
+              void tracking.startTracking(title, tagIds)
+            })
+          }
         />
       ) : null}
     </main>
