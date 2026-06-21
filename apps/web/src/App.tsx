@@ -118,6 +118,7 @@ function App() {
             ) : (
               <ListPage
                 onSelect={workBlockEditor.openEditor}
+                onStartTracking={(title, tagIds) => void tracking.startTracking(title, tagIds)}
                 selectedBlockId={workBlockEditor.selectedBlockId}
                 workBlocks={workspace.workBlocks}
               />

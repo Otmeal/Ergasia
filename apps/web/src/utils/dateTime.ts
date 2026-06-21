@@ -92,6 +92,48 @@ export function formatDuration(start: string, end: string): string {
   return `${hours} 小時 ${rest} 分`
 }
 
+export type ListPeriod = 'day' | 'week'
+
+function startOfDay(date: Date): Date {
+  const next = new Date(date)
+  next.setHours(0, 0, 0, 0)
+  return next
+}
+
+function startOfWeek(date: Date): Date {
+  const next = startOfDay(date)
+  const weekday = (next.getDay() + 6) % 7
+  next.setDate(next.getDate() - weekday)
+  return next
+}
+
+export function periodStart(iso: string, period: ListPeriod): Date {
+  const date = new Date(iso)
+  return period === 'week' ? startOfWeek(date) : startOfDay(date)
+}
+
+export function periodKey(iso: string, period: ListPeriod): string {
+  const start = periodStart(iso, period)
+  return `${period}:${start.getFullYear()}-${start.getMonth() + 1}-${start.getDate()}`
+}
+
+export function formatPeriodLabel(iso: string, period: ListPeriod): string {
+  const start = periodStart(iso, period)
+  const date = new Intl.DateTimeFormat('zh-TW', {
+    month: '2-digit',
+    day: '2-digit',
+  })
+
+  if (period === 'week') {
+    const end = new Date(start)
+    end.setDate(end.getDate() + 6)
+    return `${date.format(start)} - ${date.format(end)}`
+  }
+
+  const weekday = new Intl.DateTimeFormat('zh-TW', { weekday: 'short' }).format(start)
+  return `${date.format(start)}（${weekday}）`
+}
+
 export function formatTotalDuration(
   blocks: Array<{ startedAt: string; endedAt: string }>,
 ): string {

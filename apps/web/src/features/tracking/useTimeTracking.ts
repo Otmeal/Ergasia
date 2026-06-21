@@ -23,6 +23,7 @@ export type TimeTracking = {
   beginEditElapsed: () => void
   commitElapsed: () => void
   toggleTimeTrack: () => Promise<WorkBlock | null>
+  startTracking: (title: string, tagIds: string[]) => Promise<void>
   commitTrackingEdit: (form: BlockForm) => boolean
 }
 
@@ -126,6 +127,24 @@ export function useTimeTracking(workspace: WorkspaceData): TimeTracking {
     }
   }, [createWorkBlock, runSync, setStatus, trackingDraft, trackingStartedAt])
 
+  const startTracking = useCallback(
+    async (title: string, tagIds: string[]): Promise<void> => {
+      if (trackingStartedAt) {
+        setStatus('已在追蹤中，請先停止目前的追蹤。')
+        return
+      }
+
+      const start = new Date()
+      const draft: TrackingDraft = { title: title.trim() || '未命名時間區塊', notes: '', tagIds }
+      await setMetadata(trackingStorageKey, start.toISOString())
+      await setMetadata(trackingDraftKey, draft)
+      setTrackingStartedAt(start)
+      setTrackingDraft(draft)
+      setStatus('已開始追蹤時間。')
+    },
+    [setStatus, trackingStartedAt],
+  )
+
   const commitTrackingEdit = useCallback(
     (form: BlockForm): boolean => {
       const title = form.title.trim()
@@ -197,6 +216,7 @@ export function useTimeTracking(workspace: WorkspaceData): TimeTracking {
     beginEditElapsed,
     commitElapsed,
     toggleTimeTrack,
+    startTracking,
     commitTrackingEdit,
   }
 }
