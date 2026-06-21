@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { FormEvent } from 'react'
+import type { FormEvent, MouseEvent } from 'react'
 import { TitleSuggestInput } from '../../components/TitleSuggestInput'
 import { MarkdownPreview } from '../../markdown'
 import type { Tag, WorkBlock } from '../../types'
@@ -64,14 +64,15 @@ export function WorkBlockEditorModal({
     }
   }
 
+  function handleOverlayMouseDown(event: MouseEvent<HTMLDivElement>) {
+    if (event.target === event.currentTarget) {
+      onClose()
+    }
+  }
+
   return (
-    <div className="modal-overlay" role="presentation" onClick={onClose}>
-      <div
-        className="modal-card surface"
-        role="dialog"
-        aria-modal="true"
-        onClick={(event) => event.stopPropagation()}
-      >
+    <div className="modal-overlay" role="presentation" onMouseDown={handleOverlayMouseDown}>
+      <div className="modal-card surface" role="dialog" aria-modal="true">
         <div className="surface-header editor-header">
           <h2>{heading}</h2>
           <button type="button" className="icon-button" aria-label="關閉" onClick={onClose}>
