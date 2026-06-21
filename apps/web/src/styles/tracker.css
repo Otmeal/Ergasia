@@ -7,10 +7,15 @@
   min-width: 0;
 }
 
-.track-title-field {
+.track-title-suggest {
   flex: 1 1 auto;
   min-width: 120px;
   max-width: 420px;
+}
+
+.track-title-field {
+  width: 100%;
+  box-sizing: border-box;
   min-height: 36px;
   border: 1px solid var(--border);
   border-radius: 6px;

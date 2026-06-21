@@ -100,6 +100,7 @@ function App() {
               </div>
               <TimeTrackerControls
                 tags={workspace.tags}
+                workBlocks={workspace.workBlocks}
                 isSaving={workspace.isSaving}
                 tracking={tracking}
                 onToggle={handleTimeTrackToggle}
@@ -134,6 +135,7 @@ function App() {
           isTracking={workBlockEditor.isTrackingEdit}
           selectedBlock={workBlockEditor.selectedBlock}
           tags={workspace.tags}
+          workBlocks={workspace.workBlocks}
           onClose={workBlockEditor.closeEditor}
           onDelete={() => void workBlockEditor.removeSelectedBlock()}
           onSubmit={handleBlockSubmit}

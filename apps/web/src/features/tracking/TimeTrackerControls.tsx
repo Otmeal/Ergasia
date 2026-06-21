@@ -1,10 +1,12 @@
 import { useMemo } from 'react'
-import type { Tag } from '../../types'
+import { TitleSuggestInput } from '../../components/TitleSuggestInput'
+import type { Tag, WorkBlock } from '../../types'
 import { formatElapsed } from '../../utils/dateTime'
 import type { TimeTracking } from './useTimeTracking'
 
 type TimeTrackerControlsProps = {
   tags: Tag[]
+  workBlocks: WorkBlock[]
   isSaving: boolean
   tracking: TimeTracking
   onToggle: () => void
@@ -12,6 +14,7 @@ type TimeTrackerControlsProps = {
 
 export function TimeTrackerControls({
   tags,
+  workBlocks,
   isSaving,
   tracking,
   onToggle,
@@ -23,13 +26,17 @@ export function TimeTrackerControls({
 
   return (
     <div className="track-controls">
-      <input
-        className="track-title-field"
-        type="text"
+      <TitleSuggestInput
+        wrapperClassName="track-title-suggest"
+        inputClassName="track-title-field"
         placeholder={tracking.trackingStartedAt ? '追蹤中的標題' : '準備追蹤的標題'}
-        aria-label="追蹤標題"
+        ariaLabel="追蹤標題"
         value={tracking.trackingDraft.title}
-        onChange={(event) => tracking.updateTrackingTitle(event.target.value)}
+        onChange={tracking.updateTrackingTitle}
+        onPick={tracking.applyTitleSuggestion}
+        workBlocks={workBlocks}
+        tags={tags}
+        selectedTagIds={tracking.trackingDraft.tagIds}
       />
       <div className="track-tag-select">
         <button

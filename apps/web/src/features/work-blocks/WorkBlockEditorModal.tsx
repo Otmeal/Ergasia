@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
+import { TitleSuggestInput } from '../../components/TitleSuggestInput'
 import { MarkdownPreview } from '../../markdown'
 import type { Tag, WorkBlock } from '../../types'
 import { formatElapsed, parseElapsed, toDateTimeLocal } from '../../utils/dateTime'
@@ -11,6 +12,7 @@ type WorkBlockEditorModalProps = {
   isTracking: boolean
   selectedBlock: WorkBlock | null
   tags: Tag[]
+  workBlocks: WorkBlock[]
   onClose: () => void
   onDelete: () => void
   onSubmit: (event: FormEvent<HTMLFormElement>) => void
@@ -24,6 +26,7 @@ export function WorkBlockEditorModal({
   isTracking,
   selectedBlock,
   tags,
+  workBlocks,
   onClose,
   onDelete,
   onSubmit,
@@ -77,14 +80,20 @@ export function WorkBlockEditorModal({
         </div>
 
         <form className="editor-form block-editor-form" onSubmit={onSubmit}>
-          <input
+          <TitleSuggestInput
             required
-            className="title-input"
-            type="text"
+            inputClassName="title-input"
             placeholder="標題"
-            aria-label="標題"
+            ariaLabel="標題"
             value={blockForm.title}
-            onChange={(event) => onUpdate('title', event.target.value)}
+            onChange={(value) => onUpdate('title', value)}
+            onPick={(title, tagIds) => {
+              onUpdate('title', title)
+              onUpdate('tagIds', tagIds)
+            }}
+            workBlocks={workBlocks}
+            tags={tags}
+            selectedTagIds={blockForm.tagIds}
           />
 
           <div className="tag-row-inline">

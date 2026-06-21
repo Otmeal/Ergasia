@@ -19,6 +19,7 @@ export type TimeTracking = {
   setTrackingTagPickerOpen: (open: boolean | ((current: boolean) => boolean)) => void
   cancelEditElapsed: () => void
   updateTrackingTitle: (title: string) => void
+  applyTitleSuggestion: (title: string, tagIds: string[]) => void
   toggleTrackingTag: (tagId: string) => void
   beginEditElapsed: () => void
   commitElapsed: () => void
@@ -78,6 +79,11 @@ export function useTimeTracking(workspace: WorkspaceData): TimeTracking {
 
   const updateTrackingTitle = useCallback(
     (title: string) => persistTrackingDraft({ ...trackingDraft, title }),
+    [persistTrackingDraft, trackingDraft],
+  )
+
+  const applyTitleSuggestion = useCallback(
+    (title: string, tagIds: string[]) => persistTrackingDraft({ ...trackingDraft, title, tagIds }),
     [persistTrackingDraft, trackingDraft],
   )
 
@@ -212,6 +218,7 @@ export function useTimeTracking(workspace: WorkspaceData): TimeTracking {
     setTrackingTagPickerOpen,
     cancelEditElapsed,
     updateTrackingTitle,
+    applyTitleSuggestion,
     toggleTrackingTag,
     beginEditElapsed,
     commitElapsed,
