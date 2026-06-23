@@ -1,26 +1,3 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
-
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
-
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
-
 ## Description
 
 [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
@@ -63,6 +40,102 @@ $ pnpm run test:e2e
 # test coverage
 $ pnpm run test:cov
 ```
+
+## Database seeding
+
+Seed data lives in [`prisma/seed/`](prisma/seed). Each table has its own seeder
+file and a `default` orchestrator ties them together. **No seeder ever wipes
+data** — they only insert or upsert.
+
+### Layout
+
+| File                                | Table       | Re-run behaviour                                                                                                                                    |
+| ----------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `prisma/seed/tags.seeder.ts`        | `Tag`       | **Idempotent** — upserts by the unique `name`, so running it many times never creates duplicates.                                                   |
+| `prisma/seed/work-blocks.seeder.ts` | `WorkBlock` | **Additive** — each run appends new rows. Safe to run on its own, repeatedly. Links to existing tags if any are present; it never creates tags.     |
+| `prisma/seed/index.ts`              | —           | Orchestrator + CLI. With no argument it runs every idempotent (run-once) seeder, then seeds work blocks once. With a name it runs only that seeder. |
+| `prisma/seed/seeder.ts`             | —           | The `Seeder` interface.                                                                                                                             |
+| `prisma/seed/client.ts`             | —           | Builds a `PrismaClient` over the `@prisma/adapter-pg` driver, reading `DATABASE_URL`.                                                               |
+
+### Prerequisites
+
+The database must be running and migrated first:
+
+```bash
+# from the repo root
+docker compose up -d   # start the postgres container
+pnpm db:migrate        # apply migrations
+```
+
+### Commands
+
+Run from the **repo root**:
+
+```bash
+# default run: all idempotent seeders (tags) + work blocks once
+pnpm db:seed
+
+# run a single seeder by name (repeatable)
+pnpm db:seed:one tags
+pnpm db:seed:one work-blocks
+```
+
+Or from inside `apps/api`:
+
+```bash
+pnpm run db:seed              # delegates to `prisma db seed`
+pnpm run db:seed:one tags     # runs one seeder directly via ts-node
+```
+
+`prisma db seed` (and therefore `prisma migrate reset`) is wired to the default
+orchestrator via the `migrations.seed` entry in
+[`prisma.config.ts`](prisma.config.ts).
+
+### Adding a seeder for a new table
+
+1. Create `prisma/seed/<table>.seeder.ts` exporting a `Seeder`.
+2. Set `idempotent: true` only if re-running it produces no duplicates
+   (e.g. it upserts on a unique key); otherwise `false`.
+3. Register it in the `REGISTRY` map in `prisma/seed/index.ts`.
+
+The default orchestrator automatically runs every `idempotent` seeder; non-idempotent
+ones are run individually (or explicitly invoked, like work blocks).
+
+### Resetting the database (destructive)
+
+> **Warning:** This permanently deletes ALL data in the database. The individual
+> seeders never wipe data — only this reset does. Never run it against a
+> production database. Use it for local development only.
+
+The seeders are non-destructive by design, so re-running `work-blocks` keeps
+appending rows. When you want a clean slate, use Prisma's reset, which **drops
+the schema, re-applies every migration, and then runs the default seed
+orchestrator** (because `migrations.seed` is configured):
+
+```bash
+# from the repo root
+pnpm db:reset
+
+# or from inside apps/api
+pnpm run db:reset
+```
+
+What `prisma migrate reset` does, in order:
+
+1. Drops the database / schema (all tables and rows are destroyed).
+2. Re-creates the schema and re-applies all migrations in `prisma/migrations`.
+3. Runs the default seed (`prisma/seed/index.ts`): idempotent seeders, then work blocks once.
+
+To reset WITHOUT re-seeding afterwards, add the skip flag:
+
+```bash
+pnpm --filter api exec prisma migrate reset --skip-seed
+```
+
+Prisma prompts for confirmation before dropping data. In a non-interactive
+context (CI, scripts) it will not proceed unless you also pass `--force`, which
+skips that prompt — only add `--force` when you are certain the target database
+is disposable.
 
 ## Deployment
 

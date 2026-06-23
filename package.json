@@ -13,6 +13,9 @@
     "db:migrate": "pnpm --filter api exec prisma migrate dev",
     "db:generate": "pnpm --filter api exec prisma generate",
     "db:studio": "pnpm --filter api exec prisma studio",
+    "db:seed": "pnpm --filter api run db:seed",
+    "db:seed:one": "pnpm --filter api run db:seed:one",
+    "db:reset": "pnpm --filter api run db:reset",
     "dev": "concurrently \"pnpm dev:api\" \"pnpm dev:desktop\""
   },
   "devDependencies": {
