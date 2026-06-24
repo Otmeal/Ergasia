@@ -3,7 +3,7 @@ import type { Tag, WorkBlock } from '../../types'
 import { getReadableTextColor } from '../../utils/presentation'
 import { trackingEventId } from './useWorkBlockEditor'
 
-const defaultColor = '#2f9e8f'
+const defaultColor = '#8b5cf6'
 const untaggedColor = '#9aa3a8'
 
 export function createCalendarEvents(

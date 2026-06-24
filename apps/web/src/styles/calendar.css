@@ -8,7 +8,7 @@
   --fc-border-color: var(--border);
   --fc-page-bg-color: var(--surface);
   --fc-neutral-bg-color: var(--surface-subtle);
-  --fc-today-bg-color: rgba(47, 158, 143, 0.08);
+  --fc-today-bg-color: rgba(139, 92, 246, 0.08);
   --fc-now-indicator-color: var(--danger);
   color: var(--text);
   font-size: 14px;
@@ -39,7 +39,7 @@
 .fc-event.tracking-event {
   border-style: dotted !important;
   border-width: 2px !important;
-  background-color: rgba(47, 158, 143, 0.16) !important;
+  background-color: rgba(139, 92, 246, 0.16) !important;
   color: var(--text-strong) !important;
 }
 

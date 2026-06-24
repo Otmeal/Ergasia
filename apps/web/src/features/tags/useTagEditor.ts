@@ -5,7 +5,7 @@ import { getErrorMessage } from '../../utils/presentation'
 import type { WorkspaceData } from '../workspace/useWorkspaceData'
 import type { TagForm } from './types'
 
-const defaultColor = '#2f9e8f'
+const defaultColor = '#8b5cf6'
 
 export type TagEditor = {
   tagForm: TagForm
