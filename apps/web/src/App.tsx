@@ -6,6 +6,7 @@ import { TagsPage } from './features/tags/TagsPage'
 import { useTagEditor } from './features/tags/useTagEditor'
 import { TimeTrackerControls } from './features/tracking/TimeTrackerControls'
 import { useTimeTracking } from './features/tracking/useTimeTracking'
+import { SettingsPage } from './features/settings/SettingsPage'
 import { CalendarPage } from './features/work-blocks/CalendarPage'
 import { createCalendarEvents } from './features/work-blocks/calendarEvents'
 import { ListPage } from './features/work-blocks/ListPage'
@@ -78,7 +79,9 @@ function App() {
       <AppHeader viewMode={viewMode} onViewModeChange={setViewMode} />
       <StatusLine status={workspace.status} />
 
-      {viewMode === 'tags' ? (
+      {viewMode === 'settings' ? (
+        <SettingsPage isSaving={workspace.isSaving} onRunSync={workspace.runSync} />
+      ) : viewMode === 'tags' ? (
         <TagsPage
           editingTagId={tagEditor.editingTagId}
           isSaving={workspace.isSaving}

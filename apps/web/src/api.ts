@@ -1,6 +1,66 @@
 import type { SyncOperation, SyncResponse, Tag, TagPayload, WorkBlock, WorkBlockPayload } from './types'
 
-const apiBase = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
+const SYNC_BASE_URL_KEY = 'ergasia.sync-base-url'
+const defaultApiBase = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
+
+let apiBase = readStoredBaseUrl() ?? defaultApiBase
+
+function readStoredBaseUrl(): string | null {
+  try {
+    const stored = window.localStorage.getItem(SYNC_BASE_URL_KEY)?.trim()
+    return stored ? stored : null
+  } catch {
+    return null
+  }
+}
+
+function normalizeBaseUrl(value: string): string {
+  return value.trim().replace(/\/+$/, '')
+}
+
+export function getSyncBaseUrl(): string {
+  return apiBase
+}
+
+export function getDefaultSyncBaseUrl(): string {
+  return defaultApiBase
+}
+
+export function setSyncBaseUrl(value: string): string {
+  const normalized = normalizeBaseUrl(value)
+
+  if (!normalized) {
+    throw new Error('同步網址不可為空。')
+  }
+
+  try {
+    new URL(normalized)
+  } catch {
+    throw new Error('同步網址格式不正確。')
+  }
+
+  apiBase = normalized
+
+  try {
+    window.localStorage.setItem(SYNC_BASE_URL_KEY, normalized)
+  } catch {
+    // 持久化失敗無妨，運行時值已更新。
+  }
+
+  return normalized
+}
+
+export function resetSyncBaseUrl(): string {
+  apiBase = defaultApiBase
+
+  try {
+    window.localStorage.removeItem(SYNC_BASE_URL_KEY)
+  } catch {
+    // ignore
+  }
+
+  return apiBase
+}
 
 export function getWorkBlocks() {
   return request<WorkBlock[]>('/work-blocks')

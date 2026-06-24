@@ -4,7 +4,7 @@
   "scripts": {
     "dev:web": "pnpm --filter web dev",
     "dev:api": "pnpm --filter api start:dev",
-    "dev:desktop": "pnpm --filter web tauri:dev",
+    "dev:desktop": "concurrently \"pnpm dev:api\" \"pnpm --filter web tauri:dev\"",
     "build:web": "pnpm --filter web build",
     "build:api": "pnpm --filter api build",
     "build:desktop": "pnpm --filter web tauri:build",
@@ -16,7 +16,7 @@
     "db:seed": "pnpm --filter api run db:seed",
     "db:seed:one": "pnpm --filter api run db:seed:one",
     "db:reset": "pnpm --filter api run db:reset",
-    "dev": "concurrently \"pnpm dev:api\" \"pnpm dev:desktop\""
+    "dev": "pnpm dev:desktop"
   },
   "devDependencies": {
     "concurrently": "^10.0.3"

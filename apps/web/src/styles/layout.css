@@ -164,6 +164,16 @@
   gap: 8px;
 }
 
+.field-hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-soft, #6b7280);
+}
+
+.field-hint.is-error {
+  color: var(--danger);
+}
+
 .ghost-action {
   color: var(--text-strong);
   background: var(--surface);

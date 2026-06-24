@@ -21,7 +21,8 @@ export function formatPendingStatus(pendingCount: number): string {
 
 export function formatSyncOutcome(outcome: SyncOutcome): string {
   if (outcome.status === 'offline') {
-    return `離線：${outcome.pendingCount} 筆待同步。`
+    const base = `離線：${outcome.pendingCount} 筆待同步。`
+    return outcome.error ? `${base}（${outcome.error}）` : base
   }
 
   if (outcome.status === 'failed') {

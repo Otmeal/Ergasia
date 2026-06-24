@@ -34,6 +34,13 @@ export function AppHeader({ viewMode, onViewModeChange }: AppHeaderProps) {
         >
           標籤
         </button>
+        <button
+          type="button"
+          className={viewMode === 'settings' ? 'active' : ''}
+          onClick={() => onViewModeChange('settings')}
+        >
+          設定
+        </button>
       </nav>
     </header>
   )

@@ -1,4 +1,4 @@
-import { checkHealth, syncOperations } from './api'
+import { syncOperations } from './api'
 import type {
   SyncAction,
   SyncEntity,
@@ -35,6 +35,7 @@ export type SyncOutcome = {
   snapshot: LocalDataSnapshot
   pendingCount: number
   failedCount: number
+  error?: string
 }
 
 let dbPromise: Promise<IDBDatabase> | null = null
@@ -233,7 +234,6 @@ async function performSync(): Promise<SyncOutcome> {
   const before = await readRawSnapshot()
 
   try {
-    await checkHealth()
     const operations = [...before.operations].sort(compareOperations)
     const response = await syncOperations(operations)
     const appliedOperationIds = new Set(
@@ -252,13 +252,14 @@ async function performSync(): Promise<SyncOutcome> {
       pendingCount: snapshot.pendingCount,
       failedCount,
     }
-  } catch {
+  } catch (error: unknown) {
     const snapshot = toLocalSnapshot(before)
     return {
       status: 'offline',
       snapshot,
       pendingCount: snapshot.pendingCount,
       failedCount: 0,
+      error: error instanceof Error ? error.message : String(error),
     }
   }
 }
