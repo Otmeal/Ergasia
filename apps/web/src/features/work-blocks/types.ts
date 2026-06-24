@@ -6,4 +6,4 @@ export type BlockForm = {
   tagIds: string[]
 }
 
-export type ViewMode = 'calendar' | 'list' | 'tags' | 'settings'
+export type ViewMode = 'calendar' | 'list' | 'tags' | 'statistics' | 'settings'

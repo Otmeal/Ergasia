@@ -76,8 +76,11 @@ export function formatRange(start: string, end: string): string {
   return `${day} ${time.format(startDate)}-${time.format(endDate)}`
 }
 
-export function formatDuration(start: string, end: string): string {
-  const minutes = Math.max(0, Math.round((new Date(end).getTime() - new Date(start).getTime()) / 60_000))
+export function durationMinutes(start: string, end: string): number {
+  return Math.max(0, Math.round((new Date(end).getTime() - new Date(start).getTime()) / 60_000))
+}
+
+export function formatMinutes(minutes: number): string {
   const hours = Math.floor(minutes / 60)
   const rest = minutes % 60
 
@@ -90,6 +93,10 @@ export function formatDuration(start: string, end: string): string {
   }
 
   return `${hours} 小時 ${rest} 分`
+}
+
+export function formatDuration(start: string, end: string): string {
+  return formatMinutes(durationMinutes(start, end))
 }
 
 export type ListPeriod = 'day' | 'week'
@@ -137,12 +144,7 @@ export function formatPeriodLabel(iso: string, period: ListPeriod): string {
 export function formatTotalDuration(
   blocks: Array<{ startedAt: string; endedAt: string }>,
 ): string {
-  const minutes = blocks.reduce(
-    (total, block) =>
-      total +
-      Math.max(0, Math.round((new Date(block.endedAt).getTime() - new Date(block.startedAt).getTime()) / 60_000)),
-    0,
-  )
+  const minutes = blocks.reduce((total, block) => total + durationMinutes(block.startedAt, block.endedAt), 0)
   const hours = Math.floor(minutes / 60)
   const rest = minutes % 60
 

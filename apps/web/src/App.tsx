@@ -7,6 +7,7 @@ import { useTagEditor } from './features/tags/useTagEditor'
 import { TimeTrackerControls } from './features/tracking/TimeTrackerControls'
 import { useTimeTracking } from './features/tracking/useTimeTracking'
 import { SettingsPage } from './features/settings/SettingsPage'
+import { StatisticsPage } from './features/statistics/StatisticsPage'
 import { CalendarPage } from './features/work-blocks/CalendarPage'
 import { createCalendarEvents } from './features/work-blocks/calendarEvents'
 import { ListPage } from './features/work-blocks/ListPage'
@@ -93,6 +94,18 @@ function App() {
           onReset={tagEditor.resetTagForm}
           onSubmit={tagEditor.saveTag}
         />
+      ) : viewMode === 'statistics' ? (
+        <section className="workspace single">
+          <div className="surface main-surface">
+            <div className="surface-header">
+              <div>
+                <h2>統計</h2>
+                <p>依標籤統計時數</p>
+              </div>
+            </div>
+            <StatisticsPage workBlocks={workspace.workBlocks} />
+          </div>
+        </section>
       ) : (
         <section className="workspace single">
           <div className="surface main-surface">

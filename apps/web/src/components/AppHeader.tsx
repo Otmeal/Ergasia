@@ -36,6 +36,13 @@ export function AppHeader({ viewMode, onViewModeChange }: AppHeaderProps) {
         </button>
         <button
           type="button"
+          className={viewMode === 'statistics' ? 'active' : ''}
+          onClick={() => onViewModeChange('statistics')}
+        >
+          統計
+        </button>
+        <button
+          type="button"
           className={viewMode === 'settings' ? 'active' : ''}
           onClick={() => onViewModeChange('settings')}
         >
